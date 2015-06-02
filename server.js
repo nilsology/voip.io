@@ -6,8 +6,14 @@ var express     = require('express'),
     bodyParser  = require('body-parser');
     xml         = require('xml');
 
-var ctrl =  require('./middleware');
 var calls = {};
+
+io.on('connection', function(socket) {
+  console.log('client ' + socket.id + ' connected');
+  socket.on('disconnect', function() {
+    console.log('client ' + socket.id + ' disconnected');
+  });
+});
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -23,7 +29,7 @@ app.post('/', function(req, res) {
 
   calls[callId] = { "from" : from, "to" : to, "dir" : dir };
 
-  ctrl.callHandler(calls[callId]);
+  callHandler(calls[callId]);
   // XML-Response to socket.io
   res.send(
     xml({ Response: [
@@ -33,17 +39,39 @@ app.post('/', function(req, res) {
 });
 
 app.post("/hangup", function (req, res) {
-  ctrl.onHangup(calls[callId]);
+  onHangup(calls[callId]);
   res.send();
-});
-
-io.on('connection', function(socket) {
-  console.log('client ' + socket.id + ' connected');
-  socket.on('disconnect', function() {
-    console.log('client ' + socket.it + ' disconnected'); 
-  });
 });
 
 http.listen(port, function() {
   console.log('listening on *:'+port);
 });
+
+callHandler = function(callObj) {
+
+  var call = callObj;
+
+  if (call.dir === 'in') {
+    inCallHandler(call);
+  } else if (call.dir === 'out') {
+    outCallHandler(call);
+  }
+
+}
+
+inCallHandler = function(call) {
+  io.sockets.emit('call', call); 
+  console.log('incoming call from: ' + call.from);
+  // log event
+}
+
+outCallHandler = function(call) {
+  io.sockets.emit('call', call);
+  console.log('outgoing call to: ' + call.to);
+  // log event
+}
+
+onHangup = function(call) {
+
+  console.log("hang up call from: " + call.from + " to: " + call.to + "with cause: " + call.why);
+}
