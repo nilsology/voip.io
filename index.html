@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>voip-gateway management</title>
+  </head>
+  <body>
+    <div>
+      <ul id="calls">
+      </ul>
+    </div>
+  <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script> 
+  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+  <script>
+    var socket = io();
+    $('form#chat').submit(function(){
+      socket.emit('chat message', $('#msg').val());
+      $('#msg').val('');
+      return false;
+    });
+
+    socket.on('call', function(msg) {
+      if (msg.dir === "in") {
+        var dir = ' -> '; 
+      } else {
+        var dir = ' <- ';
+      }
+      $('#calls').append($('<li>').text(msg.from + dir + msg.to)); 
+    });
+    
+  </script>
+  </body>
+</html>
