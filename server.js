@@ -40,9 +40,8 @@ app.post("/hangup", function (req, res) {
 io.on('connection', function(socket) {
   console.log('client ' + socket.id + ' connected');
   socket.on('disconnect', function() {
-    console.log('client disconnected'); 
+    console.log('client ' + socket.it + ' disconnected'); 
   });
-
 });
 
 http.listen(port, function() {
