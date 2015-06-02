@@ -1,13 +1,12 @@
-
 var express     = require('express'),
     app         = express(),
     http        = require('http').Server(app),
     port        = 64591,
     io          = require('socket.io')(http),
     bodyParser  = require('body-parser');
+    xml         = require('xml');
 
-var middleware = require('middleware.js');
-
+var ctrl =  require('./middleware');
 var calls = {};
 
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -17,32 +16,31 @@ app.get('/', function(req, res) {
 });
 
 app.post('/', function(req, res) {
-  var callId = req.body.callId;
-  calls[callId].from = req.body.from;
-  calls[callId].to = req.body.to;
-  calls[callId].dir = req.body.direction;
+  var callId = req.body.callId,
+      from = req.body.from,
+      to = req.body.to,
+      dir = req.body.direction;
 
-  callHandler(calls[callId]);
+  calls[callId] = { "from" : from, "to" : to, "dir" : dir };
+
+  ctrl.callHandler(calls[callId]);
   // XML-Response to socket.io
-  res.send("So long, and thanks for all the fish!");
+  res.send(
+    xml({ Response: [
+      {_attr: { onHangup: 'http://' + req.headers.host + '/hangup' }}
+      ] })
+    );
 });
 
-app.post("/hangup", function (request, response) {
-  var callId = request.body.callId;
-
-  var from = calls[callId]["from"]
-  var to = calls[callId]["to"]
-
-  console.log("hang up call from: " + from + " to: " + to + "with cause: " + request.body.cause);
-
-  response.send();
+app.post("/hangup", function (req, res) {
+  ctrl.onHangup(calls[callId]);
+  res.send();
 });
 
 io.on('connection', function(socket) {
-  console.log('a user connected');
-
+  console.log('client ' + socket.id + ' connected');
   socket.on('disconnect', function() {
-    console.log('user disconnected'); 
+    console.log('client disconnected'); 
   });
 
 });
